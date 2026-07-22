@@ -104,6 +104,27 @@
   .note-text { font-size: 12px; color: var(--muted); line-height: 1.8; margin-top: 4px; }
   footer { margin-top: 40px; font-size: 10px; color: #5C574C; letter-spacing: 0.1em; text-align: center; line-height: 1.9; padding: 0 24px; }
   .status-text { flex: 1; padding: 13px 0; text-align: center; font-size: 13px; letter-spacing: 0.1em; color: var(--gold); }
+
+  /* ── 三分割ガイド強調表示 ── */
+  .thirds-guide {
+    margin: 0 0 16px;
+    border: 1px solid #2A2722;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .thirds-zone {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid #2A2722;
+  }
+  .thirds-zone:last-child { border-bottom: none; }
+  .thirds-zone .zone-label { color: var(--muted); letter-spacing: 0.05em; }
+  .thirds-zone .zone-range { font-size: 10px; color: #5C574C; margin-top: 2px; }
+  .thirds-zone .zone-val { font-family: 'Shippori Mincho', serif; font-size: 18px; color: var(--gold); text-align: right; }
+  .thirds-zone .zone-pct { font-size: 10px; color: var(--muted); text-align: right; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -121,18 +142,12 @@
 <script type="module">
 import { FilesetResolver, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 
-// ---------------------------------------------------------------------------
-// 状態管理(素のJSで簡易的にReactライクな状態+再描画を実装)
-// ---------------------------------------------------------------------------
 const state = {
-  status: "idle", // idle | loading | adjusting | ready | analyzing | done | error
-  imgSrc: null,
-  imgW: 0,
-  imgH: 0,
-  rawImage: null, // {source, displayUrl, width, height}
-  zoom: 1,
-  pan: { x: 0, y: 0 },
-  landmarks468: null, // 生の468(478)点
+  status: "idle",
+  imgSrc: null, imgW: 0, imgH: 0,
+  rawImage: null,
+  zoom: 1, pan: { x: 0, y: 0 },
+  landmarks468: null,
   namedLandmarks: null,
   measurements: null,
   faceShape: null,
@@ -141,9 +156,7 @@ const state = {
 
 const mainEl = document.getElementById("main");
 
-// ---------------------------------------------------------------------------
-// MediaPipe FaceLandmarker
-// ---------------------------------------------------------------------------
+// ── MediaPipe ──────────────────────────────────────────────────────────────
 let faceLandmarkerPromise = null;
 function getFaceLandmarker() {
   if (!faceLandmarkerPromise) {
@@ -166,18 +179,16 @@ function getFaceLandmarker() {
   }
   return faceLandmarkerPromise;
 }
-// バックグラウンドで先読みしておく(初回計測の待ち時間を短縮)
 getFaceLandmarker().catch(() => {});
 
-// MediaPipe Face Mesh 標準インデックスから、本アプリで使う名前付き特徴点を抽出する
+// ── ランドマーク定義 ───────────────────────────────────────────────────────
 const IDX = {
-  hairline: 10,
   chinTip: 152,
   cheekboneLeft: 234,
   cheekboneRight: 454,
   jawLeft: 172,
   jawRight: 397,
-  noseBottom: 2,
+  noseBottom: 2,        // 鼻の下（人中上端）
   faceEdgeLeft: 127,
   faceEdgeRight: 356,
   eyeOuterLeft: 33,
@@ -199,8 +210,16 @@ const IDX = {
   noseAlaRight: 358,
   mouthTopCenter: 0,
 };
-const BROW_L_IDX = 105;
-const BROW_R_IDX = 334;
+
+// 眉下ライン: 左右の眉の下端の平均
+// 眉下端に近いインデックス: 左66、右296
+const BROW_BOTTOM_L = 66;
+const BROW_BOTTOM_R = 296;
+
+// 生え際の推定に使う「額上部」メッシュ点
+// MediaPipeの点10は額中央（生え際より低い）
+// 点10の上方・髪際に近い点群: 109, 10, 338（左中右の額上端付近）
+const FOREHEAD_TOP_INDICES = [109, 10, 338];
 
 function extractNamedLandmarks(raw) {
   const lm = {};
@@ -208,22 +227,43 @@ function extractNamedLandmarks(raw) {
     const p = raw[idx];
     if (p) lm[name] = { x: p.x, y: p.y };
   }
-  if (raw[BROW_L_IDX] && raw[BROW_R_IDX]) {
-    lm.browLine = {
-      x: (raw[BROW_L_IDX].x + raw[BROW_R_IDX].x) / 2,
-      y: (raw[BROW_L_IDX].y + raw[BROW_R_IDX].y) / 2,
+
+  // ── 眉下ライン（左右の眉下端の平均） ─────────────────────────────────
+  // ※ 三分割の「起点」となる重要な基準点
+  if (raw[BROW_BOTTOM_L] && raw[BROW_BOTTOM_R]) {
+    lm.browBottom = {
+      x: (raw[BROW_BOTTOM_L].x + raw[BROW_BOTTOM_R].x) / 2,
+      y: (raw[BROW_BOTTOM_L].y + raw[BROW_BOTTOM_R].y) / 2,
     };
   }
-  // MediaPipeのメッシュは髪の生え際までカバーしていないため、インデックス10は
-  // 額の中間あたりに位置する(実際の生え際より低い)。「眉下〜鼻下」の8割程度の
-  // 幅を上に外挿して生え際を推定する(全幅だと額を長く見積もりすぎるため控えめに)。
-  if (lm.browLine && lm.noseBottom) {
-    const midfaceSpan = lm.noseBottom.y - lm.browLine.y;
+  // 旧 browLine（後方互換）
+  lm.browLine = lm.browBottom;
+
+  // ── 生え際の推定 ────────────────────────────────────────────────────────
+  // 方針:
+  //   1. まずメッシュ上で最も額上端に近い点群(109/10/338)の平均Y座標を取る
+  //   2. それでも実際の生え際より低いことが多いため、
+  //      「眉下〜鼻下」の距離の 0.55倍だけ眉下から上へ外挿する
+  //      (旧コードの0.9倍→頭頂部寄りになっていた問題を修正)
+  const foreheadTopPts = FOREHEAD_TOP_INDICES.map(i => raw[i]).filter(Boolean);
+  if (foreheadTopPts.length > 0 && lm.browBottom && lm.noseBottom) {
+    const meshTopY = foreheadTopPts.reduce((s, p) => s + p.y, 0) / foreheadTopPts.length;
+    const meshTopX = foreheadTopPts.reduce((s, p) => s + p.x, 0) / foreheadTopPts.length;
+
+    const midfaceSpan = lm.noseBottom.y - lm.browBottom.y; // 眉下〜鼻下の距離
+
+    // メッシュ頂点が生え際より低い場合を考慮して、より保守的な外挿係数を使う
+    // 係数0.55: 「眉下〜鼻下」の55%を眉下から上に伸ばした位置を生え際とする
+    const estimatedHairlineY = lm.browBottom.y - midfaceSpan * 0.55;
+
+    // メッシュ上の額頂点がさらに上にあればそちらを優先（より正確）
     lm.hairline = {
-      x: lm.browLine.x,
-      y: lm.browLine.y - midfaceSpan * 0.9,
+      x: meshTopX,
+      y: Math.min(meshTopY, estimatedHairlineY),
     };
   }
+
+  // ── 瞳孔中心 ──────────────────────────────────────────────────────────
   const avg = (pts) => ({
     x: pts.reduce((s, p) => s + p.x, 0) / pts.length,
     y: pts.reduce((s, p) => s + p.y, 0) / pts.length,
@@ -237,9 +277,7 @@ function extractNamedLandmarks(raw) {
   return lm;
 }
 
-// ---------------------------------------------------------------------------
-// 計測ロジック(実ピクセル座標に変換してから計算、瞳孔間距離6.3cmを基準にcm推定)
-// ---------------------------------------------------------------------------
+// ── 計測ロジック ───────────────────────────────────────────────────────────
 const FACE_SHAPE_NOTES = {
   卵型: "縦横バランスが取れ、額と顎の幅差が緩やかな輪郭です",
   丸型: "縦横の比率が近く、頬の丸みが特徴的な輪郭です",
@@ -285,19 +323,26 @@ function computeMeasurements(lm, imgW, imgH) {
     else faceShape = "卵型";
   }
 
+  // ── 三分割: 生え際→眉下→鼻下→顎先 ───────────────────────────────────
   let thirds = null;
-  if (px.hairline && px.browLine && px.noseBottom && px.chinTip) {
-    const foreheadPx = px.browLine.y - px.hairline.y;
-    const midfacePx = px.noseBottom.y - px.browLine.y;
-    const lowerfacePx = px.chinTip.y - px.noseBottom.y;
+  if (px.hairline && px.browBottom && px.noseBottom && px.chinTip) {
+    const zone1Px = px.browBottom.y - px.hairline.y;   // 生え際〜眉下
+    const zone2Px = px.noseBottom.y - px.browBottom.y;  // 眉下〜鼻下
+    const zone3Px = px.chinTip.y - px.noseBottom.y;     // 鼻下〜顎先
     const totalPx = px.chinTip.y - px.hairline.y || 1;
     thirds = {
-      forehead: Math.round((foreheadPx / totalPx) * 100),
-      midface: Math.round((midfacePx / totalPx) * 100),
-      lowerface: Math.round((lowerfacePx / totalPx) * 100),
-      foreheadCm: toCm(foreheadPx),
-      midfaceCm: toCm(midfacePx),
-      lowerfaceCm: toCm(lowerfacePx),
+      forehead:   Math.round((zone1Px / totalPx) * 100),
+      midface:    Math.round((zone2Px / totalPx) * 100),
+      lowerface:  Math.round((zone3Px / totalPx) * 100),
+      foreheadCm: toCm(zone1Px),
+      midfaceCm:  toCm(zone2Px),
+      lowerfaceCm:toCm(zone3Px),
+      totalCm:    toCm(totalPx),
+      // 基準点のY座標（画像比率）を保持（キャンバス描画用）
+      hairlineY:  lm.hairline.y,
+      browBottomY:lm.browBottom.y,
+      noseBottomY:lm.noseBottom.y,
+      chinTipY:   lm.chinTip.y,
     };
   }
 
@@ -328,8 +373,6 @@ function computeMeasurements(lm, imgW, imgH) {
     const heightDiffPct = (Math.abs(eyeHeightLeftPx - eyeHeightRightPx) / ((eyeHeightLeftPx + eyeHeightRightPx) / 2)) * 100;
     const widthLeftCm = toCm(eyeWidthLeftPx), widthRightCm = toCm(eyeWidthRightPx);
     const heightLeftCm = toCm(eyeHeightLeftPx), heightRightCm = toCm(eyeHeightRightPx);
-    // 表示しているcm値(四捨五入後)を基準に大小を判定する。生のピクセル値で
-    // 判定すると、表示上は同じcmなのに「大きい」と出てしまうことがあるため。
     const leftSumCm = (widthLeftCm ?? 0) + (heightLeftCm ?? 0);
     const rightSumCm = (widthRightCm ?? 0) + (heightRightCm ?? 0);
     eyeSize = {
@@ -386,9 +429,7 @@ function computeMeasurements(lm, imgW, imgH) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// 画像ユーティリティ
-// ---------------------------------------------------------------------------
+// ── 画像ユーティリティ ────────────────────────────────────────────────────
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -405,7 +446,6 @@ function loadImageEl(src) {
     img.src = src;
   });
 }
-
 function getCoverGeometry(containerW, containerH, imgW, imgH, zoom) {
   const baseScale = Math.max(containerW / imgW, containerH / imgH);
   const scale = baseScale * zoom;
@@ -416,9 +456,27 @@ function getCoverGeometry(containerW, containerH, imgW, imgH, zoom) {
   return { scale, dW, dH, maxPanX, maxPanY };
 }
 
-// ---------------------------------------------------------------------------
-// 描画: カード(通常) / カード(位置調整)
-// ---------------------------------------------------------------------------
+// ── ガイドSVG（調整画面）──────────────────────────────────────────────────
+// 横2本の破線: 上＝眉下ライン、下＝鼻下ライン（三分割の基準を明示）
+function faceGuideSVG(opacity) {
+  const top = 75, bottom = 335;
+  const browLine  = top + (bottom - top) * 0.28;  // 生え際〜眉下（約28%）
+  const noseLine  = top + (bottom - top) * 0.62;  // 生え際〜鼻下（約62%）
+  return `
+    <svg id="adjustGuide" viewBox="0 0 300 400" style="opacity:${opacity}">
+      <ellipse cx="150" cy="205" rx="92" ry="130" fill="none" stroke="#C6A15B" stroke-width="2" stroke-dasharray="6 6" />
+      <!-- 眉下ライン -->
+      <line x1="20" y1="${browLine}" x2="280" y2="${browLine}" stroke="#C6A15B" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.85" />
+      <text x="284" y="${browLine + 4}" fill="#C6A15B" font-size="9" opacity="0.8">眉下</text>
+      <!-- 鼻下ライン -->
+      <line x1="20" y1="${noseLine}" x2="280" y2="${noseLine}" stroke="#C6A15B" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.85" />
+      <text x="284" y="${noseLine + 4}" fill="#C6A15B" font-size="9" opacity="0.8">鼻下</text>
+      <!-- 中心縦線 -->
+      <line x1="150" y1="${top}" x2="150" y2="${bottom}" stroke="#F4EFE4" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+    </svg>`;
+}
+
+// ── 描画 ──────────────────────────────────────────────────────────────────
 function render() {
   if (state.status === "adjusting" && state.rawImage) {
     mainEl.innerHTML = adjustCardHTML();
@@ -427,19 +485,6 @@ function render() {
     mainEl.innerHTML = normalCardHTML();
     wireNormalCard();
   }
-}
-
-function faceGuideSVG(opacity) {
-  const top = 75, bottom = 335;
-  const third1 = top + (bottom - top) / 3;
-  const third2 = top + ((bottom - top) * 2) / 3;
-  return `
-    <svg id="adjustGuide" viewBox="0 0 300 400" style="opacity:${opacity}">
-      <ellipse cx="150" cy="205" rx="92" ry="130" fill="none" stroke="#C6A15B" stroke-width="2" stroke-dasharray="6 6" />
-      <line x1="58" y1="${third1}" x2="242" y2="${third1}" stroke="#C6A15B" stroke-width="1" stroke-dasharray="3 5" opacity="0.6" />
-      <line x1="58" y1="${third2}" x2="242" y2="${third2}" stroke="#C6A15B" stroke-width="1" stroke-dasharray="3 5" opacity="0.6" />
-      <line x1="150" y1="${top}" x2="150" y2="${bottom}" stroke="#F4EFE4" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
-    </svg>`;
 }
 
 function adjustCardHTML() {
@@ -454,7 +499,7 @@ function adjustCardHTML() {
         <input id="zoomSlider" type="range" min="0.4" max="2.5" step="0.02" value="${state.zoom}" />
         <span>拡大</span>
       </div>
-      <div class="hint">ドラッグで位置調整、スライダーで拡大・縮小できます。中心の縦線を鼻筋に、横の2本の線を眉のライン・鼻下のラインに合わせて調整してください</div>
+      <div class="hint">ドラッグで位置調整、スライダーで拡大・縮小。<br><strong style="color:var(--gold)">眉下ライン</strong>に眉の下端を、<strong style="color:var(--gold)">鼻下ライン</strong>に鼻の付け根を合わせてください。中心の縦線は鼻筋に合わせます。</div>
       <div class="btn-row">
         <button id="confirmCropBtn" class="btn btn-primary">位置を確定する</button>
         <button id="adjustResetBtn" class="btn btn-ghost">やり直す</button>
@@ -521,6 +566,30 @@ function statCard(label, value, sub) {
     </div>`;
 }
 
+// ── 三分割 カード表示（ゾーン明示） ────────────────────────────────────────
+function thirdsCard(thirds) {
+  if (!thirds) return "";
+  const zones = [
+    { label: "① 額", range: "生え際 → 眉下", pct: thirds.forehead, cm: thirds.foreheadCm },
+    { label: "② 中顔", range: "眉下 → 鼻下", pct: thirds.midface, cm: thirds.midfaceCm },
+    { label: "③ 下顔", range: "鼻下 → 顎先", pct: thirds.lowerface, cm: thirds.lowerfaceCm },
+  ];
+  return `
+    <div class="thirds-guide">
+      ${zones.map(z => `
+        <div class="thirds-zone">
+          <div>
+            <div class="zone-label">${z.label}</div>
+            <div class="zone-range">${z.range}</div>
+          </div>
+          <div>
+            <div class="zone-val">${z.cm != null ? z.cm + "cm" : "-"}</div>
+            <div class="zone-pct">${z.pct}%</div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
 function resultsHTML() {
   const m = state.measurements;
   return `
@@ -547,10 +616,9 @@ function resultsHTML() {
       </div>
 
       <div class="section">
-        <div class="section-title"><span class="dash"></span>三分割（生え際・眉下・鼻下・顎先）</div>
-        ${barRow("額", m.thirds?.forehead ?? 0, m.thirds?.foreheadCm)}
-        ${barRow("中顔", m.thirds?.midface ?? 0, m.thirds?.midfaceCm)}
-        ${barRow("下顔", m.thirds?.lowerface ?? 0, m.thirds?.lowerfaceCm)}
+        <div class="section-title"><span class="dash"></span>三分割（生え際 → 眉下 → 鼻下 → 顎先）</div>
+        ${thirdsCard(m.thirds)}
+        <div class="note-text">理想の三分割は①②③がほぼ同比率（各33%）です</div>
       </div>
 
       <div class="section">
@@ -586,9 +654,7 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
-// ---------------------------------------------------------------------------
-// イベント配線
-// ---------------------------------------------------------------------------
+// ── イベント配線 ──────────────────────────────────────────────────────────
 function wireNormalCard() {
   const previewArea = document.getElementById("previewArea");
   const albumInput = document.getElementById("fileInputAlbum");
@@ -610,7 +676,6 @@ function wireNormalCard() {
   backToAdjustBtn?.addEventListener("click", () => { state.status = "adjusting"; render(); });
   resetBtn?.addEventListener("click", resetAll);
 
-  // バー・キャンバスの描画(DOM構築後に実行)
   document.querySelectorAll(".bar-fill").forEach((el) => {
     const pct = Number(el.dataset.pct) || 0;
     requestAnimationFrame(() => { el.style.width = pct + "%"; });
@@ -695,9 +760,6 @@ function wireAdjustCard() {
   resetBtn.addEventListener("click", resetAll);
 }
 
-// ---------------------------------------------------------------------------
-// ファイル選択・解析フロー
-// ---------------------------------------------------------------------------
 async function handleFile(file) {
   if (!file || !file.type.startsWith("image/")) {
     state.errorMsg = "画像ファイルを選択してください";
@@ -718,8 +780,6 @@ async function handleFile(file) {
       width: img.naturalWidth || img.width,
       height: img.naturalHeight || img.height,
     };
-    // 1倍(完全カバー)だと縦横どちらか一方が動かせる余地ゼロになるため、
-    // 最初から少し拡大した状態にして、上下左右どちらにもドラッグできるようにする
     state.zoom = 1.15;
     state.pan = { x: 0, y: 0 };
     state.status = "adjusting";
@@ -772,9 +832,6 @@ async function runAnalysis() {
   render();
 }
 
-// ---------------------------------------------------------------------------
-// 結果画面: 468点+ガイド線の描画
-// ---------------------------------------------------------------------------
 function drawLandmarkCanvas() {
   const canvas = document.getElementById("landmarkCanvas");
   if (!canvas || !state.landmarks468) return;
@@ -782,27 +839,42 @@ function drawLandmarkCanvas() {
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d");
 
-  // 468(478)点を緑で描画
   ctx.fillStyle = "#00FF66";
   state.landmarks468.forEach((p, i) => {
-    if (i >= 468) return; // 虹彩点は除く
+    if (i >= 468) return;
     ctx.beginPath();
     ctx.arc(p.x * w, p.y * h, Math.max(1, w * 0.0022), 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // 使用した基準点+ガイド線をゴールドで重ねる
   const lm = state.namedLandmarks;
   if (lm) {
     const px = (p) => ({ x: p.x * w, y: p.y * h });
-    if (lm.hairline && lm.browLine && lm.noseBottom && lm.chinTip) {
-      ctx.strokeStyle = "rgba(198,161,91,0.5)";
-      ctx.lineWidth = 1;
-      [lm.hairline, lm.browLine, lm.noseBottom, lm.chinTip].forEach((p) => {
-        const { y } = px(p);
+
+    // 三分割ライン（生え際・眉下・鼻下・顎先）をゴールドで強調描画
+    if (lm.hairline && lm.browBottom && lm.noseBottom && lm.chinTip) {
+      const lines = [
+        { pt: lm.hairline,   label: "生え際" },
+        { pt: lm.browBottom, label: "眉下" },
+        { pt: lm.noseBottom, label: "鼻下" },
+        { pt: lm.chinTip,    label: "顎先" },
+      ];
+      lines.forEach(({ pt, label }) => {
+        const { y } = px(pt);
+        // 実線（太め・不透明）
+        ctx.strokeStyle = "rgba(198,161,91,0.85)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.setLineDash([]);
+        // ラベル
+        ctx.fillStyle = "rgba(198,161,91,0.95)";
+        ctx.font = `bold ${Math.max(12, w * 0.018)}px 'Noto Sans JP', sans-serif`;
+        ctx.fillText(label, 8, y - 4);
       });
     }
+
+    // 五眼ライン
     if (lm.faceEdgeLeft && lm.eyeOuterLeft && lm.eyeInnerLeft && lm.eyeInnerRight && lm.eyeOuterRight && lm.faceEdgeRight) {
       ctx.strokeStyle = "rgba(198,161,91,0.35)";
       ctx.lineWidth = 1;
@@ -811,6 +883,8 @@ function drawLandmarkCanvas() {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
       });
     }
+
+    // 基準点（ゴールド・大き目）
     ctx.fillStyle = "#C6A15B";
     Object.values(lm).forEach((p) => {
       const { x, y } = px(p);
