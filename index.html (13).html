@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>tles VISUAL SUCCESS ── 顔計測</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" />
+<style>
+  :root {
+    --ink: #0B0B0A;
+    --paper: #F4EFE4;
+    --gold: #C6A15B;
+    --deep-gold: #8B6E3B;
+    --line: #3A3630;
+    --muted: #9C9384;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at 50% 0%, #17150F 0%, var(--ink) 55%);
+    color: var(--paper);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 60px;
+  }
+  .serif { font-family: 'Shippori Mincho', serif; }
+  header { width: 100%; max-width: 480px; padding: 40px 24px 24px; text-align: center; box-sizing: border-box; }
+  .eyebrow { font-size: 13px; letter-spacing: 0.35em; color: var(--gold); margin-bottom: 10px; }
+  h1 { font-weight: 600; font-size: 26px; margin: 0; letter-spacing: 0.05em; }
+  .sub { font-size: 11px; letter-spacing: 0.12em; color: var(--muted); margin-top: 8px; }
+  main { width: 100%; max-width: 480px; padding: 0 20px; box-sizing: border-box; }
+  .card {
+    border: 1px solid #332F27;
+    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    padding: 20px;
+  }
+  .preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    border-radius: 4px;
+    border: 1px dashed var(--deep-gold);
+    overflow: hidden;
+    background: #141210;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .preview.has-img { border: 1px solid var(--line); cursor: default; }
+  .preview img { width: 100%; height: 100%; object-fit: cover; }
+  .placeholder { text-align: center; padding: 24px; }
+  .placeholder .plus { font-size: 28px; color: var(--gold); margin-bottom: 10px; }
+  .placeholder .txt { font-size: 13px; color: var(--muted); line-height: 1.8; }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; padding: 13px 0; border-radius: 3px; font-size: 13px; letter-spacing: 0.05em;
+    cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--paper);
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--deep-gold));
+    color: var(--ink); border: none; font-family: 'Shippori Mincho', serif;
+    font-weight: 600; font-size: 14px; letter-spacing: 0.1em;
+  }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); flex: none; padding: 13px 18px; }
+  .btn-outline { background: transparent; color: var(--gold); border: 1px solid var(--deep-gold); flex: none; padding: 13px 18px; }
+  .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.7; }
+  .error { margin-top: 12px; font-size: 12px; color: #D98A6B; }
+  input[type=file] { display: none; }
+  #adjustStage { position: relative; width: 100%; aspect-ratio: 3/4; border-radius: 4px; border: 1px solid var(--line); overflow: hidden; background: #141210; touch-action: none; cursor: grab; }
+  #adjustStage.dragging { cursor: grabbing; }
+  #adjustImg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; user-select: none; pointer-events: none; transform-origin: center center; }
+  #adjustGuide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.85; }
+  .zoom-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .zoom-row span { font-size: 11px; color: var(--muted); }
+  .zoom-row input[type=range] { flex: 1; accent-color: var(--gold); }
+  .badge {
+    display: inline-block; font-size: 10px; letter-spacing: 0.1em; padding: 4px 10px;
+    border-radius: 20px; border: 1px solid var(--gold); color: var(--gold);
+  }
+  .badge-row { text-align: center; margin-bottom: 4px; }
+  .shape-block { text-align: center; padding: 8px 0 22px; }
+  .shape-block .label { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+  .shape-block .value { font-family: 'Shippori Mincho', serif; font-size: 32px; font-weight: 600; color: var(--gold); margin: 6px 0; }
+  .shape-block .note { font-size: 12px; color: #C9C2B2; }
+  .section { margin-top: 22px; }
+  .section-title { font-size: 11px; letter-spacing: 0.2em; color: var(--deep-gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title .dash { width: 14px; height: 1px; background: var(--deep-gold); display: inline-block; }
+  .stat-row { display: flex; gap: 12px; }
+  .stat-card { flex: 1; border: 1px solid #2A2722; border-radius: 4px; padding: 14px 8px; text-align: center; }
+  .stat-card .label { font-size: 10px; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-card .value { font-family: 'Shippori Mincho', serif; font-size: 18px; color: var(--gold); }
+  .stat-card .sub { font-size: 10px; color: #6B6862; margin-top: 2px; }
+  .bar-row { margin-bottom: 14px; }
+  .bar-row .top { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: 0.05em; color: #C9C2B2; margin-bottom: 6px; }
+  .bar-row .top .v { color: var(--gold); font-weight: 500; }
+  .bar-track { height: 3px; background: #2A2722; border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg,#8B6E3B,#C6A15B); transition: width 1.1s cubic-bezier(.16,1,.3,1); width: 0%; }
+  .note-text { font-size: 12px; color: var(--muted); line-height: 1.8; margin-top: 4px; }
+  footer { margin-top: 40px; font-size: 10px; color: #5C574C; letter-spacing: 0.1em; text-align: center; line-height: 1.9; padding: 0 24px; }
+  .status-text { flex: 1; padding: 13px 0; text-align: center; font-size: 13px; letter-spacing: 0.1em; color: var(--gold); }
+
+  /* ── 三分割ガイド強調表示 ── */
+  .thirds-guide {
+    margin: 0 0 16px;
+    border: 1px solid #2A2722;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .thirds-zone {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid #2A2722;
+  }
+  .thirds-zone:last-child { border-bottom: none; }
+  .thirds-zone .zone-label { color: var(--muted); letter-spacing: 0.05em; }
+  .thirds-zone .zone-range { font-size: 10px; color: #5C574C; margin-top: 2px; }
+  .thirds-zone .zone-val { font-family: 'Shippori Mincho', serif; font-size: 18px; color: var(--gold); text-align: right; }
+  .thirds-zone .zone-pct { font-size: 10px; color: var(--muted); text-align: right; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">T L E S &nbsp;/&nbsp; VISUAL SUCCESS</div>
+    <h1 class="serif">顔計測 ── 468点実測</h1>
+    <div class="sub">MediaPipe Face Mesh による実座標ベースの計測（ログイン不要）</div>
+  </header>
+  <main id="main"></main>
+  <footer>
+    tles TRIAD ── VISUAL SUCCESS<br />
+    © tles / VISUAL SUCCESS ── 本ツールはtles専用です。無断利用・転載を禁じます
+  </footer>
+
+<script type="module">
+import { FilesetResolver, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
+
+const state = {
+  status: "idle",
+  imgSrc: null, imgW: 0, imgH: 0,
+  rawImage: null,
+  zoom: 1, pan: { x: 0, y: 0 },
+  landmarks468: null,
+  namedLandmarks: null,
+  measurements: null,
+  faceShape: null,
+  errorMsg: "",
+};
+
+const mainEl = document.getElementById("main");
+
+// ── MediaPipe ──────────────────────────────────────────────────────────────
+let faceLandmarkerPromise = null;
+function getFaceLandmarker() {
+  if (!faceLandmarkerPromise) {
+    faceLandmarkerPromise = (async () => {
+      const filesetResolver = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+      );
+      return await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU",
+        },
+        runningMode: "IMAGE",
+        numFaces: 1,
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false,
+      });
+    })();
+  }
+  return faceLandmarkerPromise;
+}
+getFaceLandmarker().catch(() => {});
+
+// ── ランドマーク定義 ───────────────────────────────────────────────────────
+const IDX = {
+  chinTip: 152,
+  cheekboneLeft: 234,
+  cheekboneRight: 454,
+  jawLeft: 172,          // 顎下部側面
+  jawRight: 397,
+  // エラ・顎ラインの形状判定用（複数点で輪郭の「直線性」を計測）
+  // MediaPipe Face Mesh の顎輪郭ライン: 左側 172→136→150→149→176→148→152
+  //                                     右側 397→365→379→378→400→377→152
+  jawAngleLeft: 58,      // 顎角部（エラ頂点）左
+  jawAngleRight: 288,    // 顎角部（エラ頂点）右
+  jawMidLeft: 136,       // エラ〜顎先の中間点（左）
+  jawMidRight: 365,      // エラ〜顎先の中間点（右）
+  jawLowerLeft: 150,     // 顎先寄り（左）
+  jawLowerRight: 379,    // 顎先寄り（右）
+  noseBottom: 2,        // 鼻の下（人中上端）
+  faceEdgeLeft: 127,
+  faceEdgeRight: 356,
+  eyeOuterLeft: 33,
+  eyeInnerLeft: 173,   // 目頭（内眼角）左: 133より正確な内側端
+  eyeInnerRight: 398,  // 目頭（内眼角）右: 362より正確な内側端
+  eyeOuterRight: 263,
+  glabella: 168,
+  noseTip: 4,
+  philtrum: 164,
+  mouthCornerLeft: 61,
+  mouthCornerRight: 291,
+  eyeTopLeft: 159,
+  eyeBottomLeft: 145,
+  eyeTopRight: 386,
+  eyeBottomRight: 374,
+  eyebrowOuterLeft: 46,
+  eyebrowOuterRight: 276,
+  noseAlaLeft: 129,
+  noseAlaRight: 358,
+  mouthTopCenter: 0,
+};
+
+// 眉ライン: 左右の眉の上端（最も高い位置）の平均を「眉ライン」として使用
+// 三分割の定義: 生え際→眉(上端)→鼻下→顎先
+// MediaPipe 眉上端インデックス: 左52/53/65/105, 右282/283/295/334
+const BROW_TOP_INDICES_L = [52, 53, 65, 105];
+const BROW_TOP_INDICES_R = [282, 283, 295, 334];
+
+// 生え際推定に使う額上端メッシュ点群
+// 10: 額中央上部, 109: 左寄り, 338: 右寄り, 67: 左上, 297: 右上
+// これらのY座標の最小値（最も上にある点）を額メッシュ頂点として使う
+const FOREHEAD_TOP_INDICES = [10, 109, 338, 67, 297];
+
+function extractNamedLandmarks(raw) {
+  const lm = {};
+  for (const [name, idx] of Object.entries(IDX)) {
+    const p = raw[idx];
+    if (p) lm[name] = { x: p.x, y: p.y };
+  }
+
+  // ── 眉ライン（左右の眉上端の最小Y＝最も高い位置）─────────────────────
+  // 三分割の定義: 生え際 → 眉(上端) → 鼻下 → 顎先
+  const browTopPtsL = BROW_TOP_INDICES_L.map(i => raw[i]).filter(Boolean);
+  const browTopPtsR = BROW_TOP_INDICES_R.map(i => raw[i]).filter(Boolean);
+  if (browTopPtsL.length > 0 && browTopPtsR.length > 0) {
+    // 左眉: 最も上にある点（Y最小）
+    const topL = browTopPtsL.reduce((best, p) => p.y < best.y ? p : best);
+    // 右眉: 最も上にある点（Y最小）
+    const topR = browTopPtsR.reduce((best, p) => p.y < best.y ? p : best);
+    // 左右の平均を「眉ライン」とする
+    lm.browTop = {
+      x: (topL.x + topR.x) / 2,
+      y: (topL.y + topR.y) / 2,
+    };
+  }
+  // browBottom / browLine は後方互換のため browTop と同じ値に統一
+  lm.browBottom = lm.browTop;
+  lm.browLine   = lm.browTop;
+
+  // ── 生え際の推定 ────────────────────────────────────────────────────────
+  // MediaPipeのメッシュは髪の生え際を直接検出しない。
+  // 推定方針:
+  //   A) 額メッシュ頂点群(10/109/338/67/297)のうち最も上(Y最小)の点を取得
+  //   B) 「眉下〜鼻下」距離を1単位として、眉下から上へ外挿
+  //      係数0.75: 平均的な顔の額の高さ ≒ 中顔の75%程度
+  //   C) AとBを比較し「より上にある方（Y座標が小さい方）」を採用
+  //      → ただしAが眉より下にある場合（=メッシュが額をカバーしていない）はBを使う
+  // ── 生え際の推定 ────────────────────────────────────────────────────────
+  // 基準を「眉上端(browTop)〜鼻下(noseBottom)」の距離で外挿する。
+  // 黄金比の三分割では 生え際〜眉 ≒ 眉〜鼻下 ≒ 鼻下〜顎先 が理想。
+  // よって「眉上端〜鼻下」の距離を1単位として眉上端から上へ外挿する係数は
+  // 理論上1.0だが、実際は生え際が額のメッシュより上にあるため 0.85〜1.0 が適切。
+  // ここでは 0.9 を初期値とし、額メッシュ実座標が上にある場合はそちらを優先。
+  const foreheadTopPts = FOREHEAD_TOP_INDICES.map(i => raw[i]).filter(Boolean);
+  if (lm.browTop && lm.noseBottom) {
+    const browToNose = lm.noseBottom.y - lm.browTop.y; // 眉上端〜鼻下の距離
+
+    // ── 生え際推定の方針 ────────────────────────────────────────────────
+    // MediaPipeのメッシュ点10/109/338/67/297は実際の生え際に最も近い点群。
+    // これをまず優先し、眉〜鼻下距離の0.75倍を外挿した値を下限として使う。
+    // つまり「メッシュ点」と「外挿値」のうち【下にある方（Y大きい方）】を採用。
+    // → 過去に係数0.9・1.0で全員面長になった反省から、外挿は補助のみ。
+
+    let finalY = lm.browTop.y; // デフォルト: 眉上端（最悪ケース）
+    let finalX = lm.browTop.x;
+
+    if (foreheadTopPts.length > 0) {
+      // メッシュ点の中で最も上（Y最小）の点
+      const meshTopPt = foreheadTopPts.reduce((best, p) => p.y < best.y ? p : best);
+
+      // 外挿: 眉〜鼻下距離の0.7倍を眉上端から上へ（保守的な値）
+      const estimatedY = lm.browTop.y - browToNose * 0.7;
+
+      // メッシュ点と外挿値のうち、下にある方（顔に近い方）を生え際とする
+      // → 上に行きすぎるのを防ぐ
+      finalY = Math.max(meshTopPt.y, estimatedY);
+      finalX = meshTopPt.x;
+    } else {
+      // メッシュ点が取れない場合のみ外挿のみ使用
+      finalY = lm.browTop.y - browToNose * 0.7;
+    }
+
+    lm.hairline = { x: finalX, y: finalY };
+  }
+
+  // ── 瞳孔中心 ──────────────────────────────────────────────────────────
+  const avg = (pts) => ({
+    x: pts.reduce((s, p) => s + p.x, 0) / pts.length,
+    y: pts.reduce((s, p) => s + p.y, 0) / pts.length,
+  });
+  if (lm.eyeOuterLeft && lm.eyeInnerLeft && lm.eyeTopLeft && lm.eyeBottomLeft) {
+    lm.pupilLeft = avg([lm.eyeOuterLeft, lm.eyeInnerLeft, lm.eyeTopLeft, lm.eyeBottomLeft]);
+  }
+  if (lm.eyeOuterRight && lm.eyeInnerRight && lm.eyeTopRight && lm.eyeBottomRight) {
+    lm.pupilRight = avg([lm.eyeOuterRight, lm.eyeInnerRight, lm.eyeTopRight, lm.eyeBottomRight]);
+  }
+  return lm;
+}
+
+// ── 計測ロジック ───────────────────────────────────────────────────────────
+const FACE_SHAPE_NOTES = {
+  卵型:         "縦横バランスが取れた最もベーシックな輪郭。多彩なスタイルが似合います",
+  丸型:         "縦横比が近く、頬の丸みが柔らかく親しみやすい印象の輪郭です",
+  面長:         "縦の比率が高く、額から顎までが長めの知的でエレガントな輪郭です",
+  ベース型:     "頬骨・顎のラインがしっかりした、安定感のある力強い印象の輪郭です",
+  逆三角形:     "額・頬骨が広く顎が細い、シャープで洗練された印象の輪郭です",
+  ダイヤモンド型:"頬骨の張りが最も広く、立体感のある個性的な輪郭です",
+};
+const ASSUMED_PUPIL_DISTANCE_CM = 6.3;
+
+function toPx(p, w, h) {
+  if (!p) return null;
+  return { x: p.x * w, y: p.y * h };
+}
+function distPx(a, b) {
+  if (!a || !b) return null;
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function computeMeasurements(lm, imgW, imgH) {
+  if (!lm || !imgW || !imgH) return null;
+  const px = {};
+  Object.keys(lm).forEach((k) => { px[k] = toPx(lm[k], imgW, imgH); });
+
+  const pupilDistPx = distPx(px.pupilLeft, px.pupilRight);
+  const cmPerPx = pupilDistPx ? ASSUMED_PUPIL_DISTANCE_CM / pupilDistPx : null;
+  const toCm = (pxLen) => (cmPerPx && pxLen != null ? Math.round(pxLen * cmPerPx * 10) / 10 : null);
+
+  const faceHeightPx    = distPx(px.hairline, px.chinTip);
+  const faceWidthPx     = distPx(px.cheekboneLeft, px.cheekboneRight);   // 頬骨幅
+  const faceRatio       = faceHeightPx && faceWidthPx ? faceHeightPx / faceWidthPx : null;
+  const jawWidthPx      = distPx(px.jawLeft, px.jawRight);               // 顎先幅
+  const jawAngleWidthPx = distPx(px.jawAngleLeft, px.jawAngleRight);     // エラ幅
+  const foreheadWidthPx = distPx(px.faceEdgeLeft, px.faceEdgeRight);     // 額幅
+
+  // ── 顎ラインの「直線性」スコアを計算 ─────────────────────────────────
+  // エラ頂点・中間点・顎先の3点が直線に近いほどベース型（四角い顎）
+  // なだらかな曲線に近いほど卵型・丸型
+  // 方法: エラ→顎先を結んだ直線から中間点がどれだけ外にはみ出しているかを計測
+  // はみ出しが小さい（直線的）→ベース型
+  // はみ出しが大きい（曲線的）→卵型・丸型
+  let jawLinearityScore = null; // 0〜1: 1に近いほど直線的（ベース型）
+  if (px.jawAngleLeft && px.jawMidLeft && px.jawLeft && px.chinTip &&
+      px.jawAngleRight && px.jawMidRight && px.jawRight) {
+
+    // 左側: エラ頂点(jawAngleLeft) → 顎先(chinTip) の直線から jawMidLeft の距離
+    const calcLinearity = (angleP, midP, endP) => {
+      const dx = endP.x - angleP.x;
+      const dy = endP.y - angleP.y;
+      const len = Math.hypot(dx, dy) || 1;
+      // 直線からの垂直距離
+      const dist = Math.abs((endP.y - angleP.y)*midP.x - (endP.x - angleP.x)*midP.y
+                          + endP.x*angleP.y - endP.y*angleP.x) / len;
+      // 距離を顔幅で正規化
+      return dist / (faceWidthPx || 1);
+    };
+
+    const linearityL = calcLinearity(px.jawAngleLeft,  px.jawMidLeft,  px.chinTip);
+    const linearityR = calcLinearity(px.jawAngleRight, px.jawMidRight, px.chinTip);
+    const avgCurvature = (linearityL + linearityR) / 2;
+
+    // curvatureが小さい → 直線的 → linearity高い
+    // curvatureが大きい → 曲線的 → linearity低い
+    // 0.04以下: ほぼ直線（ベース型）/ 0.08以上: 曲線（卵・丸型）
+    jawLinearityScore = avgCurvature;
+  }
+
+  let faceShape = null;
+  if (faceRatio && jawWidthPx && foreheadWidthPx && faceWidthPx) {
+    const jawToCheek      = jawWidthPx        / faceWidthPx;
+    const jawAngleToCheek = (jawAngleWidthPx || jawWidthPx * 1.05) / faceWidthPx;
+    const foreheadToCheek = foreheadWidthPx   / faceWidthPx;
+    const widthToHeight   = faceWidthPx       / (faceHeightPx || 1);
+
+    // 顎ラインの直線性:
+    //   jawLinearityScore が小さい → 直線的（ベース型の顎）
+    //   jawLinearityScore が大きい → 曲線的（卵型・丸型の顎）
+    // 閾値: 0.045以下 = 直線的（ベース型候補）
+    const isJawLinear = jawLinearityScore !== null && jawLinearityScore < 0.045;
+    const isJawCurved = jawLinearityScore !== null && jawLinearityScore > 0.065;
+
+    // ── 判定フロー ──────────────────────────────────────────────────────
+    // 1. ダイヤモンド型: 頬骨が最大幅、額と顎が近い幅
+    const isDiamond = foreheadToCheek < 0.83
+                   && jawToCheek < 0.78
+                   && Math.abs(foreheadToCheek - jawToCheek) < 0.12;
+
+    // 2. ベース型（エラ張り＋顎ラインが直線的）
+    //    エラ幅が広い かつ 顎ラインが直線的（なだらかでない）
+    //    → 直線性スコアがない場合はエラ幅のみで判定
+    const isBase = jawAngleToCheek >= 0.90
+                && faceRatio < 1.52
+                && (isJawLinear || (!isJawCurved && jawAngleToCheek >= 0.93));
+
+    // 3. 逆三角形: 額が広く顎が細い
+    const isInvTri = foreheadToCheek >= 0.85 && jawToCheek < 0.70;
+
+    // 4. 面長: 縦横比1.40超 かつ ベース型でない
+    const isOblong = faceRatio > 1.55 && !isBase;
+
+    // 5. 丸型: 縦横比1.38未満 かつ 横÷縦が大きい かつ 顎が曲線的
+    const isRound = faceRatio < 1.25 && widthToHeight > 0.76 && !isBase;
+
+    // 優先順位: ダイヤモンド > ベース > 逆三角形 > 面長 > 丸型 > 卵型
+    if      (isDiamond) faceShape = "ダイヤモンド型";
+    else if (isBase)    faceShape = "ベース型";
+    else if (isInvTri)  faceShape = "逆三角形";
+    else if (isOblong)  faceShape = "面長";
+    else if (isRound)   faceShape = "丸型";
+    else                faceShape = "卵型";
+  }// ── 三分割: 生え際 → 眉(上端) → 鼻下 → 顎先 ─────────────────────────
+  let thirds = null;
+  if (px.hairline && px.browTop && px.noseBottom && px.chinTip) {
+    const zone1Px = px.browTop.y    - px.hairline.y;   // 生え際〜眉
+    const zone2Px = px.noseBottom.y - px.browTop.y;    // 眉〜鼻下
+    const zone3Px = px.chinTip.y    - px.noseBottom.y; // 鼻下〜顎先
+    const totalPx = px.chinTip.y    - px.hairline.y || 1;
+    thirds = {
+      forehead:    Math.round((zone1Px / totalPx) * 100),
+      midface:     Math.round((zone2Px / totalPx) * 100),
+      lowerface:   Math.round((zone3Px / totalPx) * 100),
+      foreheadCm:  toCm(zone1Px),
+      midfaceCm:   toCm(zone2Px),
+      lowerfaceCm: toCm(zone3Px),
+      totalCm:     toCm(totalPx),
+      hairlineY:   lm.hairline.y,
+      browTopY:    lm.browTop.y,
+      noseBottomY: lm.noseBottom.y,
+      chinTipY:    lm.chinTip.y,
+    };
+  }
+
+  let fiveEyes = null;
+  if (px.faceEdgeLeft && px.eyeOuterLeft && px.eyeInnerLeft && px.eyeInnerRight && px.eyeOuterRight && px.faceEdgeRight) {
+    const s1px = px.eyeOuterLeft.x  - px.faceEdgeLeft.x;
+    const s2px = px.eyeInnerLeft.x  - px.eyeOuterLeft.x;
+    const s3px = px.eyeInnerRight.x - px.eyeInnerLeft.x;  // 目頭間距離
+    const s4px = px.eyeOuterRight.x - px.eyeInnerRight.x;
+    const s5px = px.faceEdgeRight.x - px.eyeOuterRight.x;
+    const totalPx = px.faceEdgeRight.x - px.faceEdgeLeft.x || 1;
+
+    // 遠心・求心判定: 目頭間距離(s3) ÷ 顔幅(total)
+    // 目頭間距離を「顔の輪郭幅(faceEdge)」ではなく
+    // 「目尻〜目尻の幅(eyeOuter間)」で割るとより正確
+    // eyeOuter間 = s2+s3+s4
+    const eyeSpanPx = s2px + s3px + s4px; // 両目尻間距離
+    // 目頭間 ÷ 両目尻間 を主判定に使う（顔幅の個人差の影響を受けにくい）
+    // 理想値: 目1個分 = 両目尻間の約1/3 ≒ 33%
+    // 求心: 28%未満 / 標準: 28〜38% / 遠心: 38%超
+    const innerRatioPct = (s3px / totalPx) * 100; // デバッグ用に残す
+    const innerToEyeSpan = eyeSpanPx > 0 ? (s3px / eyeSpanPx) * 100 : innerRatioPct;
+    let eyeSetType, eyeSetLabel;
+    if (innerToEyeSpan < 28) {
+      eyeSetType  = "求心";
+      eyeSetLabel = "目と目の間が狭い（求心型）";
+    } else if (innerToEyeSpan > 38) {
+      eyeSetType  = "遠心";
+      eyeSetLabel = "目と目の間が広い（遠心型）";
+    } else {
+      eyeSetType  = "標準";
+      eyeSetLabel = "目と目の間が標準的";
+    }
+
+    fiveEyes = {
+      section1: Math.round((s1px / totalPx) * 100), section1Cm: toCm(s1px),
+      section2: Math.round((s2px / totalPx) * 100), section2Cm: toCm(s2px),
+      section3: Math.round((s3px / totalPx) * 100), section3Cm: toCm(s3px),
+      section4: Math.round((s4px / totalPx) * 100), section4Cm: toCm(s4px),
+      section5: Math.round((s5px / totalPx) * 100), section5Cm: toCm(s5px),
+      innerRatioPct: Math.round(innerRatioPct * 10) / 10,
+      eyeSetType, eyeSetLabel,
+    };
+  }
+
+  let eyeSize = null;
+  const eyeWidthLeftPx = distPx(px.eyeOuterLeft, px.eyeInnerLeft);
+  const eyeWidthRightPx = distPx(px.eyeOuterRight, px.eyeInnerRight);
+  const eyeHeightLeftPx = distPx(px.eyeTopLeft, px.eyeBottomLeft);
+  const eyeHeightRightPx = distPx(px.eyeTopRight, px.eyeBottomRight);
+  if (eyeWidthLeftPx && eyeWidthRightPx && eyeHeightLeftPx && eyeHeightRightPx) {
+    const widthDiffPct = (Math.abs(eyeWidthLeftPx - eyeWidthRightPx) / ((eyeWidthLeftPx + eyeWidthRightPx) / 2)) * 100;
+    const heightDiffPct = (Math.abs(eyeHeightLeftPx - eyeHeightRightPx) / ((eyeHeightLeftPx + eyeHeightRightPx) / 2)) * 100;
+    const widthLeftCm = toCm(eyeWidthLeftPx), widthRightCm = toCm(eyeWidthRightPx);
+    const heightLeftCm = toCm(eyeHeightLeftPx), heightRightCm = toCm(eyeHeightRightPx);
+    const leftSumCm = (widthLeftCm ?? 0) + (heightLeftCm ?? 0);
+    const rightSumCm = (widthRightCm ?? 0) + (heightRightCm ?? 0);
+    eyeSize = {
+      widthLeftCm, widthRightCm, heightLeftCm, heightRightCm,
+      widthDiffCm: toCm(Math.abs(eyeWidthLeftPx - eyeWidthRightPx)),
+      widthDiffPct: Math.round(widthDiffPct), heightDiffPct: Math.round(heightDiffPct),
+      largerSide:
+        leftSumCm > rightSumCm ? "左目の方が大きい"
+        : rightSumCm > leftSumCm ? "右目の方が大きい"
+        : "ほぼ同じ",
+    };
+  }
+
+  let symmetry = null;
+  const centerPts = [px.glabella, px.noseTip, px.philtrum, px.chinTip].filter(Boolean);
+  if (centerPts.length >= 2 && faceWidthPx) {
+    const avgX = centerPts.reduce((s, p) => s + p.x, 0) / centerPts.length;
+    const centerDeviation = centerPts.reduce((s, p) => s + Math.abs(p.x - avgX), 0) / centerPts.length;
+    const centerScore = Math.max(0, 100 - (centerDeviation / faceWidthPx) * 400);
+    const pairs = [
+      [px.pupilLeft, px.pupilRight],
+      [px.mouthCornerLeft, px.mouthCornerRight],
+      [px.eyebrowOuterLeft, px.eyebrowOuterRight],
+      [px.noseAlaLeft, px.noseAlaRight],
+      [px.eyeOuterLeft, px.eyeOuterRight],
+    ].filter(([l, r]) => l && r);
+    let mirrorScore = 100;
+    if (pairs.length > 0) {
+      let asymSum = 0;
+      pairs.forEach(([l, r]) => {
+        const dl = Math.abs(avgX - l.x);
+        const dr = Math.abs(r.x - avgX);
+        asymSum += Math.abs(dl - dr) / ((dl + dr) / 2 || 1);
+      });
+      mirrorScore = Math.max(0, 100 - (asymSum / pairs.length) * 100);
+    }
+    let eyeSizeScore = 100;
+    if (eyeSize) eyeSizeScore = Math.max(0, 100 - (eyeSize.widthDiffPct + eyeSize.heightDiffPct));
+    symmetry = Math.round((centerScore + mirrorScore + eyeSizeScore) / 3);
+  }
+
+  let goldenRatio = null;
+  if (faceRatio) {
+    goldenRatio = Math.max(0, Math.round(100 - Math.abs(faceRatio - 1.618) * 60));
+    goldenRatio = Math.min(100, goldenRatio);
+  }
+
+  // jawLinearityScoreをreturnに含める
+  const jawLinearity = jawLinearityScore;
+
+  // デバッグ用: 判定に使った生の比率を保存
+  const debug = faceWidthPx ? {
+    faceRatio:        faceRatio        ? (Math.round(faceRatio * 1000)/1000) : null,
+    jawToCheek:       jawWidthPx       ? (Math.round(jawWidthPx/faceWidthPx*1000)/1000) : null,
+    jawAngleToCheek:  jawAngleWidthPx  ? (Math.round(jawAngleWidthPx/faceWidthPx*1000)/1000) : null,
+    foreheadToCheek:  foreheadWidthPx  ? (Math.round(foreheadWidthPx/faceWidthPx*1000)/1000) : null,
+    widthToHeight:    faceHeightPx     ? (Math.round(faceWidthPx/faceHeightPx*1000)/1000) : null,
+    innerRatioPct:    null, // 五眼で計算済み
+  } : null;
+
+  return {
+    faceHeightCm: toCm(faceHeightPx),
+    faceWidthCm: toCm(faceWidthPx),
+    faceRatio: faceRatio ? Math.round(faceRatio * 100) / 100 : null,
+    thirds, fiveEyes, symmetry, eyeSize, goldenRatio, faceShape,
+    calibrated: !!cmPerPx,
+    debug, jawLinearity,
+  };
+}
+
+// ── 画像ユーティリティ ────────────────────────────────────────────────────
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("ファイルの読み込みに失敗しました"));
+    reader.readAsDataURL(file);
+  });
+}
+function loadImageEl(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("画像のデコードに失敗しました"));
+    img.src = src;
+  });
+}
+function getCoverGeometry(containerW, containerH, imgW, imgH, zoom) {
+  const baseScale = Math.max(containerW / imgW, containerH / imgH);
+  const scale = baseScale * zoom;
+  const dW = imgW * scale;
+  const dH = imgH * scale;
+  const maxPanX = dW >= containerW ? (dW - containerW) / 2 : (containerW - dW) / 2 + dW / 2;
+  const maxPanY = dH >= containerH ? (dH - containerH) / 2 : (containerH - dH) / 2 + dH / 2;
+  return { scale, dW, dH, maxPanX, maxPanY };
+}
+
+// ── ガイドSVG（調整画面）──────────────────────────────────────────────────
+// 横2本の破線: 上＝眉下ライン、下＝鼻下ライン（三分割の基準を明示）
+function faceGuideSVG(opacity) {
+  const hairline = 90;
+  const chin     = 355;
+  const faceH    = chin - hairline;
+  const third    = faceH / 3;
+  const browLine = hairline + third;
+  const noseLine = hairline + third * 2;
+  const cy       = (hairline + chin) / 2;
+  const ry       = faceH / 2;
+  const rx       = 95;
+
+  return `
+    <svg id="adjustGuide" viewBox="0 0 300 400" style="opacity:${opacity}">
+      <ellipse cx="150" cy="${cy}" rx="${rx}" ry="${ry}"
+               fill="none" stroke="#C6A15B" stroke-width="2" stroke-dasharray="6 6" />
+      <line x1="55" y1="${hairline}" x2="245" y2="${hairline}"
+            stroke="#C6A15B88" stroke-width="1" stroke-dasharray="2 4" />
+      <text x="248" y="${hairline + 4}" fill="#C6A15B" font-size="9" opacity="0.7">生え際</text>
+      <line x1="40" y1="${browLine}" x2="260" y2="${browLine}"
+            stroke="#C6A15B" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.9" />
+      <text x="264" y="${browLine + 4}" fill="#C6A15B" font-size="9" opacity="0.9">眉</text>
+      <line x1="40" y1="${noseLine}" x2="260" y2="${noseLine}"
+            stroke="#C6A15B" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.9" />
+      <text x="264" y="${noseLine + 4}" fill="#C6A15B" font-size="9" opacity="0.9">鼻下</text>
+      <line x1="55" y1="${chin}" x2="245" y2="${chin}"
+            stroke="#C6A15B88" stroke-width="1" stroke-dasharray="2 4" />
+      <text x="248" y="${chin + 4}" fill="#C6A15B" font-size="9" opacity="0.7">顎先</text>
+      <line x1="150" y1="${hairline - 5}" x2="150" y2="${chin + 5}"
+            stroke="#F4EFE4" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.5" />
+      <text x="12" y="${hairline + third * 0.5}" fill="#C6A15B66" font-size="9">①額</text>
+      <text x="12" y="${browLine + third * 0.5}" fill="#C6A15B66" font-size="9">②中</text>
+      <text x="12" y="${noseLine + third * 0.5}" fill="#C6A15B66" font-size="9">③下</text>
+    </svg>`;
+}
+
+function render() {
+  if (state.status === "adjusting" && state.rawImage) {
+    mainEl.innerHTML = adjustCardHTML();
+    wireAdjustCard();
+  } else {
+    mainEl.innerHTML = normalCardHTML();
+    wireNormalCard();
+  }
+}
+
+function adjustCardHTML() {
+  return `
+    <div class="card">
+      <div id="adjustStage">
+        <img id="adjustImg" src="${state.rawImage.displayUrl}" draggable="false" />
+        ${faceGuideSVG(0.85)}
+      </div>
+      <div class="zoom-row">
+        <span>縮小</span>
+        <input id="zoomSlider" type="range" min="0.4" max="2.5" step="0.02" value="${state.zoom}" />
+        <span>拡大</span>
+      </div>
+      <div class="hint">
+        ① <strong style="color:var(--gold)">生え際</strong>を上のラインに合わせる（頭頂部ではなく髪の生え始め）<br/>
+        ② <strong style="color:var(--gold)">眉</strong>を中央上のラインに、<strong style="color:var(--gold)">鼻下</strong>を中央下のラインに合わせる<br/>
+        ③ <strong style="color:var(--gold)">顎先</strong>を下のラインに、鼻筋を縦の中心線に合わせる
+      </div>
+      <div class="btn-row">
+        <button id="confirmCropBtn" class="btn btn-primary">位置を確定する</button>
+        <button id="adjustResetBtn" class="btn btn-ghost">やり直す</button>
+      </div>
+    </div>`;
+}
+
+function normalCardHTML() {
+  const hasImg = !!state.imgSrc;
+  const showGuideStatic = !hasImg && state.status !== "loading";
+  return `
+    <div class="card">
+      <div class="preview ${hasImg ? "has-img" : ""}" id="previewArea">
+        ${
+          hasImg
+            ? `<img src="${state.imgSrc}" alt="写真" />`
+            : state.status === "loading"
+            ? `<div style="font-size:12px;color:var(--muted);letter-spacing:0.1em;">読み込み中 ……</div>`
+            : `<div class="placeholder"><div class="plus">＋</div><div class="txt">枠に顔を合わせて撮影・選択</div></div>`
+        }
+        ${showGuideStatic ? faceGuideSVG(0.35) : ""}
+        ${state.status === "analyzing" ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,11,10,0.55);font-size:12px;letter-spacing:0.1em;color:var(--gold);">468点検出中 ……</div>` : ""}
+        ${state.landmarks468 && state.status === "done" ? `<canvas id="landmarkCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>` : ""}
+      </div>
+
+      ${!hasImg && state.status !== "loading" ? `
+        <div class="hint">楕円の枠に顔がぴったり収まるよう、正面から適度な距離で撮影してください</div>
+        <div class="btn-row">
+          <button id="pickAlbumBtn" class="btn">アルバムから選ぶ</button>
+          <button id="pickCameraBtn" class="btn">その場で撮影</button>
+        </div>` : ""}
+
+      <input id="fileInputAlbum" type="file" accept="image/*" />
+      <input id="fileInputCamera" type="file" accept="image/*" capture="user" />
+
+      <div class="btn-row">
+        ${hasImg && state.status !== "analyzing" && state.status !== "done" ? `<button id="analyzeBtn" class="btn btn-primary">計測する</button>` : ""}
+        ${state.status === "analyzing" ? `<div class="status-text">計測中 ……</div>` : ""}
+        ${hasImg && state.rawImage && state.status !== "analyzing" ? `<button id="backToAdjustBtn" class="btn btn-outline">位置を調整し直す</button>` : ""}
+        ${(hasImg || state.status === "error") && state.status !== "analyzing" ? `<button id="resetBtn" class="btn btn-ghost">やり直す</button>` : ""}
+      </div>
+
+      ${state.errorMsg ? `<div class="error">${escapeHtml(state.errorMsg)}</div>` : ""}
+    </div>
+
+    ${state.status === "done" && state.measurements ? resultsHTML() : ""}
+  `;
+}
+
+function barRow(label, pct, cm) {
+  const displayText = cm != null ? `${cm}cm` : `${pct}%`;
+  return `
+    <div class="bar-row">
+      <div class="top"><span>${label}</span><span class="v">${displayText}</span></div>
+      <div class="bar-track"><div class="bar-fill" data-pct="${pct}"></div></div>
+    </div>`;
+}
+function statCard(label, value, sub) {
+  return `
+    <div class="stat-card">
+      <div class="label">${label}</div>
+      <div class="value">${value ?? "-"}</div>
+      ${sub ? `<div class="sub">${sub}</div>` : ""}
+    </div>`;
+}
+
+// ── 三分割 カード表示（ゾーン明示） ────────────────────────────────────────
+function thirdsCard(thirds) {
+  if (!thirds) return "";
+  const zones = [
+    { label: "① 額", range: "生え際 → 眉", pct: thirds.forehead, cm: thirds.foreheadCm },
+    { label: "② 中顔", range: "眉 → 鼻下", pct: thirds.midface, cm: thirds.midfaceCm },
+    { label: "③ 下顔", range: "鼻下 → 顎先", pct: thirds.lowerface, cm: thirds.lowerfaceCm },
+  ];
+  return `
+    <div class="thirds-guide">
+      ${zones.map(z => `
+        <div class="thirds-zone">
+          <div>
+            <div class="zone-label">${z.label}</div>
+            <div class="zone-range">${z.range}</div>
+          </div>
+          <div>
+            <div class="zone-val">${z.cm != null ? z.cm + "cm" : "-"}</div>
+            <div class="zone-pct">${z.pct}%</div>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
+function resultsHTML() {
+  const m = state.measurements;
+  return `
+    <div style="margin-top:24px;">
+      <div class="badge-row"><span class="badge">468点ランドマーク実測(MediaPipe)</span></div>
+
+      <div class="shape-block">
+        <div class="label">FACE SHAPE</div>
+        <div class="value serif">${state.faceShape ?? "-"}</div>
+        <div class="note">${FACE_SHAPE_NOTES[state.faceShape] ?? ""}</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="dash"></span>顔縦・顔幅</div>
+        <div class="stat-row">
+          ${statCard("顔の縦", m.faceHeightCm != null ? m.faceHeightCm + "cm" : "-")}
+          ${statCard("顔の横幅", m.faceWidthCm != null ? m.faceWidthCm + "cm" : "-")}
+          ${statCard("黄金比スコア", m.goldenRatio, "/ 100")}
+        </div>
+        <div class="stat-row" style="margin-top:12px;">
+          ${statCard("縦横比", m.faceRatio, "縦 ÷ 横")}
+          ${statCard("左右差スコア", m.symmetry, "/ 100")}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="dash"></span>三分割（生え際 → 眉 → 鼻下 → 顎先）</div>
+        ${thirdsCard(m.thirds)}
+        <div class="note-text">理想の三分割は①②③がほぼ同比率（各33%）です</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="dash"></span>五眼（顔幅を目の横幅で5分割）</div>
+        ${barRow("① 左顔外側〜左目尻", m.fiveEyes?.section1 ?? 0, m.fiveEyes?.section1Cm)}
+        ${barRow("② 左目尻〜左目頭", m.fiveEyes?.section2 ?? 0, m.fiveEyes?.section2Cm)}
+        ${barRow("③ 左目頭〜右目頭", m.fiveEyes?.section3 ?? 0, m.fiveEyes?.section3Cm)}
+        ${barRow("④ 右目頭〜右目尻", m.fiveEyes?.section4 ?? 0, m.fiveEyes?.section4Cm)}
+        ${barRow("⑤ 右目尻〜右顔外側", m.fiveEyes?.section5 ?? 0, m.fiveEyes?.section5Cm)}
+        <div class="note-text">理想は①〜⑤の長さがすべて近い値になるバランスです</div>
+        ${m.fiveEyes?.eyeSetType ? `
+        <div style="margin-top:14px;border:1px solid #2A2722;border-radius:4px;padding:14px 16px;">
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--deep-gold);margin-bottom:6px;">目の設定（遠心・求心）</div>
+          <div style="font-family:'Shippori Mincho',serif;font-size:22px;color:var(--gold);margin-bottom:4px;">${m.fiveEyes.eyeSetType}</div>
+          <div style="font-size:12px;color:#C9C2B2;margin-bottom:8px;">${m.fiveEyes.eyeSetLabel}</div>
+          <div style="font-size:11px;color:var(--muted);">目頭間距離 ÷ 顔幅 ＝ <span style="color:var(--gold);font-weight:500;">${m.fiveEyes.innerRatioPct}%</span>　（求心:18%未満 ／ 標準:18〜23% ／ 遠心:23%超）</div>
+        </div>` : ""}
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span class="dash"></span>目の左右差</div>
+        <div class="stat-row">
+          ${statCard("左目 横幅", m.eyeSize?.widthLeftCm != null ? m.eyeSize.widthLeftCm + "cm" : "-")}
+          ${statCard("右目 横幅", m.eyeSize?.widthRightCm != null ? m.eyeSize.widthRightCm + "cm" : "-")}
+        </div>
+        <div class="stat-row" style="margin-top:12px;">
+          ${statCard("左目 縦幅", m.eyeSize?.heightLeftCm != null ? m.eyeSize.heightLeftCm + "cm" : "-")}
+          ${statCard("右目 縦幅", m.eyeSize?.heightRightCm != null ? m.eyeSize.heightRightCm + "cm" : "-")}
+        </div>
+        <div class="note-text">${m.eyeSize?.largerSide ?? ""}${m.eyeSize?.widthDiffCm != null ? `（横幅差 約${m.eyeSize.widthDiffCm}cm）` : ""}</div>
+      </div>
+
+      ${m.calibrated ? `<div class="note-text" style="margin-top:20px;text-align:center;">※ cm表示は瞳孔間距離の平均値(6.3cm)を基準にした推定値です。実際の距離とは誤差が生じる場合があります</div>` : ""}
+
+      <!-- デバッグパネル: 閾値調整用 -->
+      <div style="margin-top:24px;border:1px solid #332F27;border-radius:4px;padding:14px 16px;background:rgba(255,255,255,0.02);">
+        <div style="font-size:10px;letter-spacing:0.2em;color:var(--deep-gold);margin-bottom:10px;">📊 計測デバッグ数値（閾値調整用）</div>
+        <div style="font-size:11px;color:var(--muted);line-height:2.2;font-family:monospace;">
+          縦横比 (faceRatio)　　　　= <span style="color:var(--gold)">${m.debug?.faceRatio ?? "-"}</span>　　　　　　　面長:>1.55 / 丸型:<1.25<br/>
+          顔幅cm　　　　　　　　　　= <span style="color:var(--gold)">${m.faceWidthCm ?? "-"}cm</span>　　　顔縦cm = <span style="color:var(--gold)">${m.faceHeightCm ?? "-"}cm</span><br/>
+          顎ライン直線性スコア　　　= <span style="color:var(--gold)">${m.jawLinearity != null ? Math.round(m.jawLinearity*1000)/1000 : "-"}</span>　　　　直線的(ベース):<0.045 曲線的(卵・丸):>0.065<br/>
+          顎先÷頬骨 (jawToCheek)　 = <span style="color:var(--gold)">${m.debug?.jawToCheek ?? "-"}</span>　　　　　　　ダイヤ判定: <0.78<br/>
+          エラ÷頬骨 (jawAngle)　　 = <span style="color:var(--gold)">${m.debug?.jawAngleToCheek ?? "-"}</span>　　　　　　　ベース判定: >=0.92<br/>
+          額÷頬骨 (forehead)　　　 = <span style="color:var(--gold)">${m.debug?.foreheadToCheek ?? "-"}</span>　　　　　　　逆三角判定: >=0.85<br/>
+          横÷縦 (widthToHeight)　　= <span style="color:var(--gold)">${m.debug?.widthToHeight ?? "-"}</span>　　　　　　　丸型判定: >0.74<br/>
+          目頭間÷顔幅 (innerRatio) = <span style="color:var(--gold)">${m.fiveEyes?.innerRatioPct ?? "-"}%</span>　（参考値）<br/>　　　　　　　　　　　目頭間÷両目尻間　　　 = <span style="color:var(--gold)">${m.fiveEyes ? Math.round(m.fiveEyes.section3/(m.fiveEyes.section2+m.fiveEyes.section3+m.fiveEyes.section4)*1000)/10 : '-'}%</span>　　求心:<28% 標準:28-38% 遠心:>38%
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button id="downloadPdfBtn" class="btn btn-primary" style="width:100%;">ワークシートをPDFで保存</button>
+      </div>
+    </div>`;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── ワークシート生成 ──────────────────────────────────────────────────────
+function buildWorksheetHTML() {
+  const m = state.measurements;
+  const shape = state.faceShape ?? "-";
+  const date = new Date().toLocaleDateString("ja-JP", { year:"numeric", month:"long", day:"numeric" });
+
+  const thirds = m?.thirds;
+  const fe = m?.fiveEyes;
+  const es = m?.eyeSet ?? fe?.eyeSetType;
+
+  const row = (label, val, unit="") =>
+    `<tr><td class="lbl">${label}</td><td class="val">${val ?? "-"}${val != null && unit ? "<span class='unit'>" + unit + "</span>" : ""}</td></tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>顔計測ワークシート — tles VISUAL SUCCESS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#F4EFE4;color:#1a1810;font-family:'Noto Sans JP',sans-serif;padding:32px 24px 60px;}
+  .page{max-width:560px;margin:0 auto;}
+  /* Header */
+  .ws-header{border-bottom:2px solid #1a1810;padding-bottom:14px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;}
+  .ws-brand{font-family:'Shippori Mincho',serif;font-size:11px;letter-spacing:.3em;color:#8B6E3B;}
+  .ws-title{font-family:'Shippori Mincho',serif;font-size:22px;font-weight:600;letter-spacing:.1em;}
+  .ws-date{font-size:11px;color:#9C9384;letter-spacing:.05em;}
+  /* Photo + Shape */
+  .top-row{display:flex;gap:20px;margin-bottom:24px;align-items:flex-start;}
+  .photo-box{width:160px;height:210px;border:1px solid #C6A15B;flex-shrink:0;overflow:hidden;background:#e8e4d9;}
+  .photo-box img{width:100%;height:100%;object-fit:cover;}
+  .shape-box{flex:1;}
+  .shape-label{font-size:10px;letter-spacing:.2em;color:#8B6E3B;margin-bottom:4px;}
+  .shape-value{font-family:'Shippori Mincho',serif;font-size:32px;font-weight:600;color:#1a1810;line-height:1.2;margin-bottom:6px;}
+  .shape-note{font-size:11px;color:#6B6862;line-height:1.8;}
+  /* Sections */
+  .ws-section{margin-bottom:22px;}
+  .ws-section-title{font-size:10px;letter-spacing:.22em;color:#8B6E3B;border-bottom:1px solid #C6A15B44;padding-bottom:5px;margin-bottom:10px;}
+  table{width:100%;border-collapse:collapse;}
+  td{padding:8px 10px;border-bottom:1px solid #e0dbd0;font-size:13px;vertical-align:middle;}
+  td.lbl{color:#6B6862;width:55%;font-size:12px;}
+  td.val{font-family:'Shippori Mincho',serif;font-size:16px;color:#1a1810;text-align:right;}
+  .unit{font-size:11px;color:#9C9384;margin-left:2px;}
+  /* Eye set badge */
+  .eyeset-badge{display:inline-block;padding:3px 12px;border:1px solid #C6A15B;border-radius:20px;font-size:13px;color:#8B6E3B;font-family:'Shippori Mincho',serif;margin-top:4px;}
+  /* Footer */
+  .ws-footer{margin-top:36px;border-top:1px solid #C6A15B44;padding-top:12px;font-size:9px;color:#9C9384;letter-spacing:.1em;text-align:center;line-height:2;}
+  /* 印刷用 */
+  .no-print{margin-top:28px;display:flex;gap:10px;}
+  .btn-print{flex:1;padding:12px;background:#1a1810;color:#F4EFE4;border:none;border-radius:3px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;letter-spacing:.05em;}
+  .btn-close{padding:12px 20px;background:transparent;border:1px solid #C6A15B44;color:#9C9384;border-radius:3px;font-size:13px;cursor:pointer;}
+  @media print{.no-print{display:none;}body{padding:16px;}}.
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="ws-header">
+    <div>
+      <div class="ws-brand">T L E S &nbsp;/&nbsp; VISUAL SUCCESS</div>
+      <div class="ws-title">顔計測ワークシート</div>
+    </div>
+    <div class="ws-date">${date}</div>
+  </div>
+
+  <div class="top-row">
+    <div class="photo-box">
+      ${state.imgSrc ? `<img src="${state.imgSrc}" alt="計測写真"/>` : ""}
+    </div>
+    <div class="shape-box">
+      <div class="shape-label">FACE SHAPE</div>
+      <div class="shape-value">${shape}</div>
+      <div class="shape-note">${FACE_SHAPE_NOTES[shape] ?? ""}</div>
+    </div>
+  </div>
+
+  <div class="ws-section">
+    <div class="ws-section-title">顔の縦・横</div>
+    <table>
+      ${row("顔の縦（生え際〜顎先）", m?.faceHeightCm, "cm")}
+      ${row("顔の横幅（頬骨幅）", m?.faceWidthCm, "cm")}
+      ${row("縦横比（縦÷横）", m?.faceRatio)}
+    </table>
+  </div>
+
+  <div class="ws-section">
+    <div class="ws-section-title">三分割（生え際 → 眉 → 鼻下 → 顎先）</div>
+    <table>
+      ${row("① 額　生え際→眉", thirds?.foreheadCm != null ? thirds.foreheadCm + "cm（" + thirds.forehead + "%）" : thirds?.forehead + "%", "")}
+      ${row("② 中顔　眉→鼻下", thirds?.midfaceCm != null ? thirds.midfaceCm + "cm（" + thirds.midface + "%）" : thirds?.midface + "%", "")}
+      ${row("③ 下顔　鼻下→顎先", thirds?.lowerfaceCm != null ? thirds.lowerfaceCm + "cm（" + thirds.lowerface + "%）" : thirds?.lowerface + "%", "")}
+    </table>
+    <div style="font-size:11px;color:#9C9384;margin-top:6px;">理想は①②③がほぼ同比率（各33%）</div>
+  </div>
+
+  <div class="ws-section">
+    <div class="ws-section-title">五眼・目の設定</div>
+    <table>
+      ${row("① 左顔外側〜左目尻", fe?.section1Cm != null ? fe.section1Cm + "cm（" + fe.section1 + "%）" : fe?.section1 + "%", "")}
+      ${row("② 左目尻〜左目頭", fe?.section2Cm != null ? fe.section2Cm + "cm（" + fe.section2 + "%）" : fe?.section2 + "%", "")}
+      ${row("③ 目頭間距離", fe?.section3Cm != null ? fe.section3Cm + "cm（" + fe.section3 + "%）" : fe?.section3 + "%", "")}
+      ${row("④ 右目頭〜右目尻", fe?.section4Cm != null ? fe.section4Cm + "cm（" + fe.section4 + "%）" : fe?.section4 + "%", "")}
+      ${row("⑤ 右目尻〜右顔外側", fe?.section5Cm != null ? fe.section5Cm + "cm（" + fe.section5 + "%）" : fe?.section5 + "%", "")}
+    </table>
+    <div style="margin-top:10px;">
+      <div style="font-size:10px;letter-spacing:.15em;color:#8B6E3B;margin-bottom:4px;">目の設定</div>
+      <span class="eyeset-badge">${fe?.eyeSetType ?? "-"}</span>
+      <div style="font-size:11px;color:#9C9384;margin-top:5px;">${fe?.eyeSetLabel ?? ""}${fe?.innerRatioPct != null ? "　目頭間÷顔幅 " + fe.innerRatioPct + "%" : ""}</div>
+    </div>
+  </div>
+
+  <div class="ws-footer">
+    tles VISUAL SUCCESS ── 顔計測ワークシート<br/>
+    © tles / 本データはtles専用計測ツールによる推定値です
+  </div>
+  <div class="no-print" style="margin-top:12px;font-size:11px;color:#9C9384;text-align:center;line-height:1.9;">
+    「PDFとして保存」ボタンを押すと印刷ダイアログが開きます<br/>
+    送信先で「<strong>PDFとして保存</strong>」または「<strong>Save as PDF</strong>」を選択してください
+  </div>
+
+  <div class="no-print">
+    <button class="btn-print" onclick="window.print()">📄 PDFとして保存</button>
+    <button class="btn-close" onclick="window.close()">閉じる</button>
+  </div>
+</div>
+</body></html>`;
+}
+
+function openWorksheet() {
+  const html = buildWorksheetHTML();
+  const win = window.open("", "_blank");
+  if (!win) { alert("ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。"); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+function downloadPdf() {
+  const html = buildWorksheetHTML();
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, "_blank");
+  if (!win) {
+    alert("ポップアップがブロックされました。\nブラウザのアドレスバー右側のアイコンからポップアップを許可してください。");
+    URL.revokeObjectURL(url);
+    return;
+  }
+  // フォント・画像の読み込みを待ってから印刷ダイアログを開く
+  win.addEventListener("load", () => {
+    setTimeout(() => {
+      win.focus();
+      win.print();
+      // ダイアログを閉じた後にURLを解放
+      win.addEventListener("afterprint", () => URL.revokeObjectURL(url));
+    }, 600);
+  });
+}
+
+
+// ── イベント配線 ──────────────────────────────────────────────────────────
+function wireNormalCard() {
+  const previewArea = document.getElementById("previewArea");
+  const albumInput = document.getElementById("fileInputAlbum");
+  const cameraInput = document.getElementById("fileInputCamera");
+  const pickAlbumBtn = document.getElementById("pickAlbumBtn");
+  const pickCameraBtn = document.getElementById("pickCameraBtn");
+  const analyzeBtn = document.getElementById("analyzeBtn");
+  const backToAdjustBtn = document.getElementById("backToAdjustBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  if (previewArea && !state.imgSrc && state.status !== "loading") {
+    previewArea.addEventListener("click", () => albumInput?.click());
+  }
+  pickAlbumBtn?.addEventListener("click", () => albumInput.click());
+  pickCameraBtn?.addEventListener("click", () => cameraInput.click());
+  albumInput?.addEventListener("change", (e) => handleFile(e.target.files?.[0]));
+  cameraInput?.addEventListener("change", (e) => handleFile(e.target.files?.[0]));
+  analyzeBtn?.addEventListener("click", runAnalysis);
+  backToAdjustBtn?.addEventListener("click", () => { state.status = "adjusting"; render(); });
+  resetBtn?.addEventListener("click", resetAll);
+  document.getElementById("downloadPdfBtn")?.addEventListener("click", downloadPdf);
+
+  document.querySelectorAll(".bar-fill").forEach((el) => {
+    const pct = Number(el.dataset.pct) || 0;
+    requestAnimationFrame(() => { el.style.width = pct + "%"; });
+  });
+  if (state.status === "done" && state.landmarks468) {
+    drawLandmarkCanvas();
+  }
+}
+
+let dragState = null;
+function wireAdjustCard() {
+  const stage = document.getElementById("adjustStage");
+  const img = document.getElementById("adjustImg");
+  const slider = document.getElementById("zoomSlider");
+  const confirmBtn = document.getElementById("confirmCropBtn");
+  const resetBtn = document.getElementById("adjustResetBtn");
+
+  function applyTransform() {
+    img.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${state.zoom})`;
+  }
+  applyTransform();
+
+  function clampPan(next, zoom) {
+    const rect = stage.getBoundingClientRect();
+    const { maxPanX, maxPanY } = getCoverGeometry(rect.width, rect.height, state.rawImage.width, state.rawImage.height, zoom);
+    return {
+      x: Math.max(-maxPanX, Math.min(maxPanX, next.x)),
+      y: Math.max(-maxPanY, Math.min(maxPanY, next.y)),
+    };
+  }
+
+  stage.addEventListener("pointerdown", (e) => {
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add("dragging");
+    dragState = { x: e.clientX, y: e.clientY, panX: state.pan.x, panY: state.pan.y };
+  });
+  stage.addEventListener("pointermove", (e) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.x;
+    const dy = e.clientY - dragState.y;
+    state.pan = clampPan({ x: dragState.panX + dx, y: dragState.panY + dy }, state.zoom);
+    applyTransform();
+  });
+  function endDrag() { dragState = null; stage.classList.remove("dragging"); }
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+
+  slider.addEventListener("input", (e) => {
+    const z = Number(e.target.value);
+    state.zoom = z;
+    state.pan = clampPan(state.pan, z);
+    applyTransform();
+  });
+
+  confirmBtn.addEventListener("click", () => {
+    const rect = stage.getBoundingClientRect();
+    const containerW = rect.width, containerH = rect.height;
+    const outW = 750;
+    const outH = Math.round(outW * (containerH / containerW));
+    const { dW, dH } = getCoverGeometry(containerW, containerH, state.rawImage.width, state.rawImage.height, state.zoom);
+    const canvasScale = outW / containerW;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = outW; canvas.height = outH;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#141210";
+    ctx.fillRect(0, 0, outW, outH);
+    const dx = (containerW / 2 + state.pan.x - dW / 2) * canvasScale;
+    const dy = (containerH / 2 + state.pan.y - dH / 2) * canvasScale;
+    ctx.drawImage(state.rawImage.source, dx, dy, dW * canvasScale, dH * canvasScale);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    state.imgSrc = dataUrl;
+    state.imgW = outW;
+    state.imgH = outH;
+    state.status = "ready";
+    state.landmarks468 = null;
+    state.measurements = null;
+    render();
+  });
+
+  resetBtn.addEventListener("click", resetAll);
+}
+
+async function handleFile(file) {
+  if (!file || !file.type.startsWith("image/")) {
+    state.errorMsg = "画像ファイルを選択してください";
+    state.status = "error";
+    render();
+    return;
+  }
+  state.errorMsg = "";
+  state.imgSrc = null;
+  state.status = "loading";
+  render();
+  try {
+    const rawDataUrl = await fileToDataUrl(file);
+    const img = await loadImageEl(rawDataUrl);
+    state.rawImage = {
+      source: img,
+      displayUrl: rawDataUrl,
+      width: img.naturalWidth || img.width,
+      height: img.naturalHeight || img.height,
+    };
+    state.zoom = 1.15;
+    state.pan = { x: 0, y: 0 };
+    state.status = "adjusting";
+  } catch (e) {
+    state.errorMsg = `画像の読み込みに失敗しました（詳細: ${e && e.message}）`;
+    state.status = "error";
+  }
+  render();
+}
+
+function resetAll() {
+  state.status = "idle";
+  state.imgSrc = null;
+  state.imgW = 0; state.imgH = 0;
+  state.rawImage = null;
+  state.zoom = 1; state.pan = { x: 0, y: 0 };
+  state.landmarks468 = null;
+  state.namedLandmarks = null;
+  state.measurements = null;
+  state.faceShape = null;
+  state.errorMsg = "";
+  render();
+}
+
+async function runAnalysis() {
+  if (!state.imgSrc) return;
+  state.status = "analyzing";
+  state.errorMsg = "";
+  render();
+  try {
+    const landmarker = await getFaceLandmarker();
+    const imgEl = await loadImageEl(state.imgSrc);
+    const result = landmarker.detect(imgEl);
+    if (!result.faceLandmarks || result.faceLandmarks.length === 0) {
+      throw new Error("顔を検出できませんでした。正面を向いた、顔全体が写る写真でお試しください。");
+    }
+    const raw = result.faceLandmarks[0];
+    const named = extractNamedLandmarks(raw);
+    const measurements = computeMeasurements(named, state.imgW, state.imgH);
+
+    state.landmarks468 = raw;
+    state.namedLandmarks = named;
+    state.measurements = measurements;
+    state.faceShape = measurements?.faceShape ?? null;
+    state.status = "done";
+  } catch (e) {
+    state.errorMsg = `計測に失敗しました（詳細: ${e && e.message}）`;
+    state.status = "error";
+  }
+  render();
+}
+
+function drawLandmarkCanvas() {
+  const canvas = document.getElementById("landmarkCanvas");
+  if (!canvas || !state.landmarks468) return;
+  const w = state.imgW, h = state.imgH;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#00FF66";
+  state.landmarks468.forEach((p, i) => {
+    if (i >= 468) return;
+    ctx.beginPath();
+    ctx.arc(p.x * w, p.y * h, Math.max(1, w * 0.0022), 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const lm = state.namedLandmarks;
+  if (lm) {
+    const px = (p) => ({ x: p.x * w, y: p.y * h });
+
+    // 三分割ライン（生え際・眉下・鼻下・顎先）をゴールドで強調描画
+    if (lm.hairline && lm.browTop && lm.noseBottom && lm.chinTip) {
+      const lines = [
+        { pt: lm.hairline,   label: "生え際" },
+        { pt: lm.browTop,    label: "眉" },
+        { pt: lm.noseBottom, label: "鼻下" },
+        { pt: lm.chinTip,    label: "顎先" },
+      ];
+      lines.forEach(({ pt, label }) => {
+        const { y } = px(pt);
+        // 実線（太め・不透明）
+        ctx.strokeStyle = "rgba(198,161,91,0.85)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.setLineDash([]);
+        // ラベル
+        ctx.fillStyle = "rgba(198,161,91,0.95)";
+        ctx.font = `bold ${Math.max(12, w * 0.018)}px 'Noto Sans JP', sans-serif`;
+        ctx.fillText(label, 8, y - 4);
+      });
+    }
+
+    // 五眼ライン
+    if (lm.faceEdgeLeft && lm.eyeOuterLeft && lm.eyeInnerLeft && lm.eyeInnerRight && lm.eyeOuterRight && lm.faceEdgeRight) {
+      ctx.strokeStyle = "rgba(198,161,91,0.35)";
+      ctx.lineWidth = 1;
+      [lm.faceEdgeLeft, lm.eyeOuterLeft, lm.eyeInnerLeft, lm.eyeInnerRight, lm.eyeOuterRight, lm.faceEdgeRight].forEach((p) => {
+        const { x } = px(p);
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      });
+    }
+
+    // 基準点（ゴールド・大き目）
+    ctx.fillStyle = "#C6A15B";
+    Object.values(lm).forEach((p) => {
+      const { x, y } = px(p);
+      ctx.beginPath(); ctx.arc(x, y, Math.max(2, w * 0.006), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#0B0B0A"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = "#C6A15B";
+    });
+  }
+}
+
+render();
+</script>
+</body>
+</html>
